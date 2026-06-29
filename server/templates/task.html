@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务 {{ task_id }} — AI 演讲反馈教练</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand"><a href="/">🎤 AI 演讲反馈教练</a></div>
+        <div class="nav-links">
+            <a href="/">📤 上传分析</a>
+            <a href="/history">📚 历史记录</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div id="task-container">
+            <p class="loading-text">加载中...</p>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <p>AI Speech Coach v10 | 基于多模态人工智能的演讲分析系统</p>
+    </footer>
+
+    <script>
+        const TASK_ID = "{{ task_id }}";
+    </script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script src="/static/js/app.js?v=999999"></script>
+</body>
+</html>

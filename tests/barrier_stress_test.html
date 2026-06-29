@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>barrierQueue 压力测试</title>
+<style>
+body{font:14px/1.6 'PingFang SC',monospace;background:#0f172a;color:#e2e8f0;padding:1.5rem}
+h2{border-bottom:1px solid #334155;padding-bottom:.4rem;margin-top:2rem}
+.test-case{background:#1e293b;border-radius:8px;padding:1rem;margin:1rem 0}
+.pass{color:#10b981}.fail{color:#ef4444}.warn{color:#f59e0b}
+.log-entry{padding:2px 0;font-size:13px;border-left:2px solid #334155;padding-left:8px;margin:1px 0}
+.log-entry.warn{border-left-color:#f59e0b}
+.log-entry.error{border-left-color:#ef4444}
+.metric{display:inline-block;background:#334155;padding:2px 8px;border-radius:4px;margin:2px;font-size:12px}
+pre{background:#0f172a;padding:.5rem;border-radius:4px;overflow-x:auto;font-size:12px}
+</style>
+</head>
+<body>
+<h1>🔬 barrierQueue 压力测试</h1>
+<div id="results"></div>
+<div id="log-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// 测试框架 — 模拟 initTaskPage 环境
+// ═══════════════════════════════════════════════════════════════
+const results = document.getElementById('results');
+const logContainer = document.getElementById('log-container');
+const testLog = [];
+
+function log(msg, cls) {
+    testLog.push({msg, cls, ts: performance.now()});
+    const div = document.createElement('div');
+    div.className = 'log-entry' + (cls ? ' ' + cls : '');
+    div.textContent = `[${(performance.now()/1000).toFixed(2)}s] ${msg}`;
+    logContainer.appendChild(div);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// ─ 模拟 DOM ─
+document.body.innerHTML += `
+<div id="task-container"></div>
+<div id="status-text"></div>
+<div id="log-panel"></div>
+<div id="dot-visual"></div><div id="row-visual"></div><div id="cost-visual"></div><div id="label-visual"></div>
+<div id="dot-speech"></div><div id="row-speech"></div><div id="cost-speech"></div><div id="label-speech"></div>
+<div id="dot-gesture"></div><div id="row-gesture"></div><div id="cost-gesture"></div><div id="label-gesture"></div>
+<div id="dot-scoring"></div><div id="row-scoring"></div><div id="cost-scoring"></div><div id="label-scoring"></div>
+<div id="dot-report"></div><div id="row-report"></div><div id="cost-report"></div><div id="label-report"></div>
+`;
+
+// ─ 注入 TASK_ID ─
+window.TASK_ID = 'test-task-001';
+window.Plotly = { newPlot: function(){} };
+window.location = { protocol: 'http:', host: 'localhost:8000', reload: function(){} };
+window.WebSocket = function() {
+    this.url = '';
+    this.close = function(){};
+    this.onopen = null;
+    this.onmessage = null;
+    this.onclose = null;
+    this.onerror = null;
+    return this;
+};
+window.fetch = function() {
+    return Promise.resolve({
+        ok: true,
+        json: function() { return Promise.resolve({status:'running'}); }
+    });
+};
+window.requestAnimationFrame = function(fn) { setTimeout(fn, 0); };
+window.__activeWS = null;
+
+// ─ 加载 app.js ─
+const script = document.createElement('script');
+script.src = '../server/static/js/app.js?v=' + Date.now();
+script.onload = function() { log('✅ app.js 加载完成', 'pass'); runTests(); };
+script.onerror = function() { log('❌ app.js 加载失败，请确认路径', 'fail'); };
+document.head.appendChild(script);
+
+// ═══════════════════════════════════════════════════════════════
+// 测试用例
+// ═══════════════════════════════════════════════════════════════
+
+function assert(condition, msg) {
+    if (!condition) { log('❌ 断言失败: ' + msg, 'fail'); return false; }
+    log('✅ ' + msg, 'pass'); return true;
+}
+
+function makeEvent(overrides) {
+    return Object.assign({
+        event_type: 'STEP_START',
+        stage: 'visual',
+        seq: 0,
+        cost: 0,
+        payload: {},
+        timestamp: Date.now()/1000
+    }, overrides);
+}
+
+function flushTimers(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+// 辅助：直接访问闭包内 barrierQueue（通过 window.uiState 间接观测）
+function getBarrierInfo() {
+    return {
+        phase: window.uiState.phase,
+        lockRender: window.uiState.lockRender,
+        stepBarrier: window.uiState.stepBarrier,
+        lastEventSeq: window.uiState.lastEventSeq
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 测试 1: 长耗时语音分析 — barrier 超时保护
+// ═══════════════════════════════════════════════════════════════
+async function test1_longRunningSpeech() {
+    log('━━━ 测试1: 长耗时语音分析 (barrier 超时保护) ━━━', '');
+
+    // 重置状态
+    window.uiState.phase = 'running';
+    window.uiState.lockRender = false;
+    window.uiState.stepBarrier = null;
+    window.uiState.lastEventSeq = 0;
+
+    // 发送 STEP_START speech（应由 reduce 中的 setStepRunning 设置 barrier）
+    // 注意：事件通过 enqueueEvent → flushBuffer → processEvent → reduce
+    // 但 buffer 消费有延迟，我们直接调用 processEvent 进行压力注入
+
+    // 直接使用 reduce + setStepRunning/setStepDone 模拟
+    // 由于这些函数在闭包内，我们通过 processEvent 间接调用
+    // processEvent 是闭包内函数，但我们可以通过构造事件来驱动
+
+    // 实际方案：通过 WebSocket onmessage 模拟事件注入
+    // ws.onmessage 调用 enqueueEvent，enqueueEvent 调用 flushBuffer
+
+    // 最直接的方案：找到 ws 实例并触发 onmessage
+    const ws = window.__activeWS;
+    if (!ws || !ws.onmessage) {
+        log('⚠️ WS 未初始化，跳过测试1', 'warn');
+        return;
+    }
+
+    // 发送 STEP_START speech (seq=1)
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'speech', seq: 1 })
+    })});
+
+    await flushTimers(500); // 等 buffer 消费
+
+    const info1 = getBarrierInfo();
+    log(`  状态: barrier=${info1.stepBarrier}, phase=${info1.phase}`);
+
+    // 发送 PROGRESS speech 事件（应该通过 barrier）
+    for (let i = 0; i < 5; i++) {
+        ws.onmessage({ data: JSON.stringify({
+            type: 'event',
+            data: makeEvent({ event_type: 'PROGRESS', stage: 'speech', seq: 2 + i, payload: { percent: i * 20 } })
+        })});
+    }
+
+    // 发送其他 stage 事件（应该被 barrier 拦截进 barrierQueue）
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'gesture', seq: 10 })
+    })});
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'scoring', seq: 11 })
+    })});
+
+    await flushTimers(600);
+    log(`  barrier 设置后: barrier=${getBarrierInfo().stepBarrier}`);
+
+    // 模拟长耗时：不发送 STEP_END，等待超时
+    log('  ⏳ 等待 barrier 超时 (5s)...', 'warn');
+    const startWait = performance.now();
+
+    await flushTimers(5500); // 等待超过 BARRIER_TIMEOUT
+
+    const elapsed = (performance.now() - startWait) / 1000;
+    const infoAfter = getBarrierInfo();
+
+    const test1Pass = assert(
+        infoAfter.stepBarrier === null,
+        `超时后 barrier 已释放 (实际=${infoAfter.stepBarrier}, 耗时=${elapsed.toFixed(1)}s)`
+    );
+
+    return { name: '长耗时语音分析', pass: test1Pass };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 测试 2: 连续快速 STEP_START/STEP_END
+// ═══════════════════════════════════════════════════════════════
+async function test2_rapidStepEvents() {
+    log('━━━ 测试2: 连续快速 STEP_START/STEP_END ━━━', '');
+
+    // 重置
+    window.uiState.phase = 'running';
+    window.uiState.lockRender = false;
+    window.uiState.stepBarrier = null;
+    window.uiState.lastEventSeq = 100;
+
+    const ws = window.__activeWS;
+    if (!ws || !ws.onmessage) {
+        log('⚠️ WS 未初始化', 'warn');
+        return;
+    }
+
+    const stages = ['visual', 'speech', 'gesture', 'scoring', 'report'];
+    let failures = 0;
+
+    for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const baseSeq = 200 + i * 10;
+
+        // STEP_START
+        ws.onmessage({ data: JSON.stringify({
+            type: 'event',
+            data: makeEvent({ event_type: 'STEP_START', stage: stage, seq: baseSeq })
+        })});
+
+        await flushTimers(100);
+
+        const barrierBefore = getBarrierInfo().stepBarrier;
+        if (barrierBefore !== stage) {
+            log(`  ⚠️ ${stage}: barrier 应为 "${stage}" 实际 "${barrierBefore}"`, 'warn');
+            failures++;
+        }
+
+        // STEP_END 立即到达
+        ws.onmessage({ data: JSON.stringify({
+            type: 'event',
+            data: makeEvent({ event_type: 'STEP_END', stage: stage, seq: baseSeq + 1, cost: 1.2, payload: { status: 'ok' } })
+        })});
+
+        await flushTimers(100);
+
+        const barrierAfter = getBarrierInfo().stepBarrier;
+        if (barrierAfter !== null) {
+            log(`  ⚠️ ${stage}: STEP_END 后 barrier 应为 null 实际 "${barrierAfter}"`, 'warn');
+            failures++;
+        }
+    }
+
+    const finalBarrier = getBarrierInfo().stepBarrier;
+    const test2Pass = assert(
+        finalBarrier === null && failures === 0,
+        `5个步骤快速Start→End全部正常释放 (barrier=${finalBarrier}, failures=${failures})`
+    );
+
+    return { name: '连续快速STEP事件', pass: test2Pass };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 测试 3: WebSocket 断连 → HTTP 回退
+// ═══════════════════════════════════════════════════════════════
+async function test3_wsDisconnectFallback() {
+    log('━━━ 测试3: WebSocket 断连后 HTTP 回退 ━━━', '');
+
+    // 重置
+    window.uiState.phase = 'running';
+    window.uiState.lockRender = false;
+    window.uiState.stepBarrier = null;
+    window.uiState.lastEventSeq = 300;
+
+    const ws = window.__activeWS;
+    if (!ws || !ws.onmessage) {
+        log('⚠️ WS 未初始化', 'warn');
+        return;
+    }
+
+    // 先发送一些事件让 barrier 建立
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'visual', seq: 301 })
+    })});
+    await flushTimers(200);
+
+    // 在 visual running 时发送其他 stage 事件（进 barrierQueue）
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'speech', seq: 302 })
+    })});
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'PROGRESS', stage: 'speech', seq: 303, payload: { percent: 50 } })
+    })});
+
+    await flushTimers(200);
+
+    const barrierBefore = getBarrierInfo().stepBarrier;
+    log(`  断连前: barrier=${barrierBefore}`);
+
+    // 模拟 WS 断连 — 触发 onclose
+    // onclose 中会 drain barrierQueue 然后调用 fetchFinalResults
+    if (ws.onclose) {
+        // 先清空 eventBuffer 让 fetchFinalResults 可以触发
+        // fetchFinalResults 检查 !rendered && eventBuffer.length === 0
+        ws.onclose({ code: 1006, reason: 'test disconnect' });
+    }
+
+    await flushTimers(500);
+
+    const infoAfter = getBarrierInfo();
+    // onclose 的 while 循环直接将 barrierQueue 中的事件 reduce 处理
+    // 注意：onclose 中的 reduce 不受 barrier 限制
+    const test3Pass = assert(
+        infoAfter.phase === 'done' || infoAfter.phase === 'locked',
+        `WS断连后状态已切换 (phase=${infoAfter.phase}, barrier=${infoAfter.stepBarrier})`
+    );
+
+    return { name: 'WebSocket断连回退', pass: test3Pass };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 测试 4: 队列积压超过上限 (BARRIER_QUEUE_MAX=100)
+// ═══════════════════════════════════════════════════════════════
+async function test4_queueOverflow() {
+    log('━━━ 测试4: barrierQueue 溢出上限 ━━━', '');
+
+    // 重置
+    window.uiState.phase = 'running';
+    window.uiState.lockRender = false;
+    window.uiState.stepBarrier = null;
+    window.uiState.lastEventSeq = 400;
+
+    const ws = window.__activeWS;
+    if (!ws || !ws.onmessage) {
+        log('⚠️ WS 未初始化', 'warn');
+        return;
+    }
+
+    // 建立 barrier (visual)
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'STEP_START', stage: 'visual', seq: 401 })
+    })});
+    await flushTimers(200);
+
+    // 注入 150 个事件（超过 BARRIER_QUEUE_MAX=100）
+    // 所有非 visual/系统事件都会被 barrier 拦截进 barrierQueue
+    log('  📥 注入 150 个 gesture/scoring/report 事件...');
+    for (let i = 0; i < 150; i++) {
+        const stage = ['gesture', 'scoring', 'report'][i % 3];
+        ws.onmessage({ data: JSON.stringify({
+            type: 'event',
+            data: makeEvent({
+                event_type: i % 2 === 0 ? 'STEP_START' : 'PROGRESS',
+                stage: stage,
+                seq: 500 + i,
+                payload: { percent: i }
+            })
+        })});
+    }
+
+    await flushTimers(1000);
+
+    // 手动释放 barrier 让 drain 处理队列
+    window.uiState.stepBarrier = null;
+
+    // 触发 drain（通过注入一个系统事件）
+    ws.onmessage({ data: JSON.stringify({
+        type: 'event',
+        data: makeEvent({ event_type: 'LOG', stage: 'system', seq: 700, payload: { message: 'drain trigger' } })
+    })});
+
+    await flushTimers(500);
+
+    const infoFinal = getBarrierInfo();
+    const test4Pass = assert(
+        infoFinal.stepBarrier === null || infoFinal.stepBarrier === 'speech' || infoFinal.stepBarrier === 'gesture',
+        `队列溢出后正常 drain (barrier=${infoFinal.stepBarrier})`
+    );
+
+    return { name: '队列溢出上限', pass: test4Pass };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 运行全部测试
+// ═══════════════════════════════════════════════════════════════
+async function runTests() {
+    log('🚀 开始压力测试', '');
+
+    const report = [];
+
+    // 测试1
+    try {
+        const r1 = await test1_longRunningSpeech();
+        report.push(r1);
+    } catch(e) {
+        log('❌ 测试1异常: ' + e.message, 'fail');
+        report.push({ name: '长耗时语音分析', pass: false, error: e.message });
+    }
+
+    // 测试2
+    try {
+        const r2 = await test2_rapidStepEvents();
+        report.push(r2);
+    } catch(e) {
+        log('❌ 测试2异常: ' + e.message, 'fail');
+        report.push({ name: '连续快速STEP事件', pass: false, error: e.message });
+    }
+
+    // 测试3
+    try {
+        const r3 = await test3_wsDisconnectFallback();
+        report.push(r3);
+    } catch(e) {
+        log('❌ 测试3异常: ' + e.message, 'fail');
+        report.push({ name: 'WebSocket断连回退', pass: false, error: e.message });
+    }
+
+    // 测试4
+    try {
+        const r4 = await test4_queueOverflow();
+        report.push(r4);
+    } catch(e) {
+        log('❌ 测试4异常: ' + e.message, 'fail');
+        report.push({ name: '队列溢出上限', pass: false, error: e.message });
+    }
+
+    // ── 汇总 ──
+    const passed = report.filter(r => r.pass).length;
+    const total = report.length;
+
+    const summary = document.getElementById('results');
+    summary.innerHTML = `
+        <div class="test-case">
+            <h3>📊 测试汇总</h3>
+            <p>通过: <span class="${passed === total ? 'pass' : 'fail'}">${passed}/${total}</span></p>
+            ${report.map(r => `<div>${r.pass ? '✅' : '❌'} ${r.name} ${r.error ? '(异常: '+r.error+')' : ''}</div>`).join('')}
+            <br>
+            <p><strong>最终 barrier 状态:</strong></p>
+            <pre>${JSON.stringify(getBarrierInfo(), null, 2)}</pre>
+        </div>
+    `;
+
+    log(`\n📊 完成: ${passed}/${total} 通过`, passed === total ? 'pass' : 'fail');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Confidence Report Schema",
+  "description": "校准模块输出的可信度报告数据结构（Phase 6 新增）",
+  "type": "object",
+  "required": [
+    "overall_confidence",
+    "dimensions",
+    "error_sources",
+    "limitations",
+    "recommendations",
+    "timestamp"
+  ],
+  "properties": {
+    "overall_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "整体可信度（0-1）"
+    },
+    "dimensions": {
+      "type": "object",
+      "description": "各维度可信度评估",
+      "properties": {
+        "eye_contact": { "$ref": "#/definitions/dimensionConfidence" },
+        "posture":      { "$ref": "#/definitions/dimensionConfidence" },
+        "gesture":      { "$ref": "#/definitions/dimensionConfidence" },
+        "speech":       { "$ref": "#/definitions/dimensionConfidence" }
+      }
+    },
+    "error_sources": {
+      "type": "array",
+      "description": "可信度误差来源列表",
+      "items": { "$ref": "#/definitions/errorSource" }
+    },
+    "limitations": {
+      "type": "array",
+      "description": "方法局限性说明",
+      "items": { "type": "string" }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "改进建议",
+      "items": { "type": "string" }
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "报告生成时间戳 (ISO 8601)"
+    }
+  },
+  "definitions": {
+    "dimensionConfidence": {
+      "type": "object",
+      "required": ["confidence", "method", "detection_rate", "stability"],
+      "properties": {
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "该维度可信度"
+        },
+        "method": {
+          "type": "string",
+          "description": "分析方法"
+        },
+        "detection_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "检测成功率"
+        },
+        "stability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "帧间稳定性"
+        },
+        "bias_estimate": {
+          "type": "number",
+          "description": "系统性偏差估计值"
+        },
+        "calibration_notes": {
+          "type": "string",
+          "description": "校准备注"
+        }
+      }
+    },
+    "errorSource": {
+      "type": "object",
+      "required": ["source", "severity", "affected_dimension", "description"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "误差来源标识"
+        },
+        "severity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "对总分的影响程度"
+        },
+        "affected_dimension": {
+          "type": "string",
+          "description": "受影响的维度"
+        },
+        "description": {
+          "type": "string",
+          "description": "误差描述"
+        }
+      }
+    }
+  }
+}

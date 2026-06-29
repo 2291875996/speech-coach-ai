@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Final Score Schema",
+  "description": "评分引擎输出的最终评分数据结构",
+  "type": "object",
+  "required": [
+    "overall_score",
+    "grade",
+    "dimension_scores",
+    "weights_used",
+    "source_files",
+    "timestamp"
+  ],
+  "properties": {
+    "overall_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "综合得分"
+    },
+    "grade": {
+      "type": "string",
+      "enum": ["优秀", "良好", "一般", "需改进"],
+      "description": "评分等级"
+    },
+    "dimension_scores": {
+      "type": "object",
+      "required": ["eye_contact_score", "posture_score", "gesture_score", "speech_score"],
+      "properties": {
+        "eye_contact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "眼神交流得分"
+        },
+        "posture_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "姿态得分"
+        },
+        "gesture_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "手势得分"
+        },
+        "speech_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "语音表达得分"
+        }
+      }
+    },
+    "weights_used": {
+      "type": "object",
+      "required": ["eye_contact", "posture", "gesture", "speech"],
+      "properties": {
+        "eye_contact": { "type": "number" },
+        "posture": { "type": "number" },
+        "gesture": { "type": "number" },
+        "speech": { "type": "number" }
+      },
+      "description": "实际使用的评分权重（从配置文件加载）"
+    },
+    "source_files": {
+      "type": "object",
+      "required": ["visual_features", "speech_features", "gesture_features"],
+      "properties": {
+        "visual_features": { "type": "string" },
+        "speech_features": { "type": "string" },
+        "gesture_features": { "type": "string" }
+      },
+      "description": "输入特征文件路径"
+    },
+    "strengths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "演讲优势列表"
+    },
+    "suggestions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "改进建议列表"
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "评分过程中的警告信息"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "评分时间戳 (ISO 8601)"
+    }
+  }
+}

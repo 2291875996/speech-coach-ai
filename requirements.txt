@@ -1,0 +1,11 @@
+opencv-python>=4.8
+mediapipe>=0.10
+openai-whisper>=20231117
+numpy>=1.26
+pyyaml>=6.0
+streamlit>=1.29
+librosa>=0.10
+jsonschema>=4.20
+plotly>=5.18
+pandas>=2.0
+imageio-ffmpeg>=0.5

@@ -1,0 +1,54 @@
+# 面试分析评分权重配置
+# 运行时由评分引擎加载，禁止在代码中硬编码权重
+
+weights:
+  eye_contact: 0.30
+  posture: 0.25
+  gesture: 0.20
+  speech: 0.25
+
+# 视觉分析器参数
+visual_analyzer:
+  frame_sample_interval: 5
+  ear_threshold_blink: 0.2
+  ear_consecutive_blink_frames: 3
+  head_pose_smooth_window: 10
+  eye_contact_angle_threshold_deg: 25.0
+  posture_stability_weight: 0.7
+  # 注: posture_upright_weight 已移除（无效配置，代码实际从 thresholds_config.json 读取 alignment_weight）
+
+# 语音分析器参数
+speech_analyzer:
+  whisper_model: "tiny"
+  audio_sample_rate: 16000
+  audio_channels: 1
+  pitch_fmin_hz: 50.0
+  pitch_fmax_hz: 500.0
+  ideal_speech_rate_wpm: 150.0
+  filler_words:
+    - "嗯"
+    - "啊"
+    - "这个"
+    - "那个"
+    - "然后"
+    - "就是"
+    - "呃"
+    - "吧"
+    - "嘛"
+
+# 手势分析器参数
+gesture_analyzer:
+  frame_sample_interval: 3
+  min_hand_presence_ratio: 0.1
+  gesture_diversity_threshold: 5
+  movement_smooth_window: 5
+  # 手势综合得分子权重（频率 / 多样性 / 运动幅度）
+  frequency_weight: 0.40
+  variety_weight: 0.35
+  movement_weight: 0.25
+
+# 评分引擎参数
+scoring_engine:
+  missing_dimension_fallback: 50.0
+  score_range_min: 0.0
+  score_range_max: 100.0

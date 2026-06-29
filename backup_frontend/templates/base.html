@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI 演讲反馈教练{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <a href="/">🎤 AI 演讲反馈教练</a>
+        </div>
+        <div class="nav-links">
+            <a href="/">📤 上传分析</a>
+            <a href="/history">📚 历史记录</a>
+        </div>
+    </nav>
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="page-footer">
+        <p>AI Speech Coach v9.0 | 基于多模态人工智能的演讲分析系统</p>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

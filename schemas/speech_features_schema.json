@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Speech Features Schema",
+  "description": "语音分析器输出的语音特征数据结构",
+  "type": "object",
+  "required": [
+    "source",
+    "duration_seconds",
+    "transcription",
+    "speech_rate_features",
+    "pitch_features",
+    "volume_features",
+    "filler_word_analysis",
+    "dimension_scores",
+    "timestamp"
+  ],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "输入视频路径"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "音频时长（秒）"
+    },
+    "transcription": {
+      "type": "string",
+      "description": "whisper转录文本"
+    },
+    "word_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "总词数"
+    },
+    "sentence_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "句子数"
+    },
+    "speech_rate_features": {
+      "type": "object",
+      "required": ["words_per_minute", "speech_rate_score"],
+      "properties": {
+        "words_per_minute": {
+          "type": "number",
+          "minimum": 0,
+          "description": "语速（词/分钟）"
+        },
+        "speech_rate_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "语速评分"
+        }
+      }
+    },
+    "pitch_features": {
+      "type": "object",
+      "required": ["pitch_mean_hz", "pitch_std_hz"],
+      "properties": {
+        "pitch_mean_hz": {
+          "type": "number",
+          "description": "平均基频（Hz）"
+        },
+        "pitch_std_hz": {
+          "type": "number",
+          "description": "基频标准差（Hz）"
+        },
+        "pitch_range_hz": {
+          "type": "number",
+          "description": "基频范围（Hz）"
+        },
+        "pitch_variation_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "音高变化评分"
+        },
+        "voiced_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "有声段占比"
+        }
+      }
+    },
+    "volume_features": {
+      "type": "object",
+      "required": ["rms_mean", "rms_std", "volume_variation_score"],
+      "description": "音量特征（始终输出，异常时为零值）",
+      "properties": {
+        "rms_mean": { "type": "number" },
+        "rms_std": { "type": "number" },
+        "volume_variation_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "filler_word_analysis": {
+      "type": "object",
+      "properties": {
+        "filler_word_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "填充词总数"
+        },
+        "filler_word_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "填充词比例"
+        },
+        "filler_word_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "填充词评分"
+        },
+        "detected_fillers": {
+          "type": "object",
+          "description": "各填充词出现次数"
+        }
+      }
+    },
+    "dimension_scores": {
+      "type": "object",
+      "required": ["speech_score"],
+      "properties": {
+        "speech_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "语音表达综合得分"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "分析时间戳 (ISO 8601)"
+    }
+  }
+}

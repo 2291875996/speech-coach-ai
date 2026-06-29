@@ -1,0 +1,48 @@
+{
+  "grade_thresholds": {
+    "excellent": 85,
+    "good": 70,
+    "average": 50
+  },
+  "eye_contact": {
+    "excellent_threshold": 0.7,
+    "good_threshold": 0.5,
+    "average_threshold": 0.3,
+    "min_ear_for_contact": 0.18,
+    "max_head_angle_for_contact_deg": 25.0,
+    "contact_duration_ratio_weight": 0.6,
+    "ear_score_weight": 0.4
+  },
+  "posture": {
+    "excellent_threshold": 0.8,
+    "good_threshold": 0.6,
+    "average_threshold": 0.4,
+    "max_sway_angle_deg": 15.0,
+    "stability_weight": 0.7,
+    "alignment_weight": 0.3
+  },
+  "gesture": {
+    "excellent_threshold": 0.7,
+    "good_threshold": 0.5,
+    "average_threshold": 0.3,
+    "min_gestures_per_minute_excellent": 5.0,
+    "min_gestures_per_minute_good": 2.0,
+    "min_gesture_variety_excellent": 4,
+    "min_gesture_variety_good": 2,
+    "excessive_movement_threshold": 0.8
+  },
+  "speech": {
+    "excellent_threshold": 0.8,
+    "good_threshold": 0.6,
+    "average_threshold": 0.4,
+    "ideal_wpm_excellent_min": 130.0,
+    "ideal_wpm_excellent_max": 170.0,
+    "ideal_wpm_good_min": 110.0,
+    "ideal_wpm_good_max": 190.0,
+    "filler_word_ratio_excellent_max": 0.02,
+    "filler_word_ratio_good_max": 0.05,
+    "pitch_variation_weight": 0.35,
+    "speech_rate_weight": 0.35,
+    "filler_word_weight": 0.30
+  }
+}

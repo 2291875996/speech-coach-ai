@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 演讲反馈教练</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand"><a href="/">🎤 AI 演讲反馈教练</a></div>
+        <div class="nav-links">
+            <a href="/" class="active">📤 上传分析</a>
+            <a href="/history">📚 历史记录</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- 上传区 -->
+        <section class="upload-section">
+            <div class="upload-card" id="upload-card">
+                <div class="upload-icon">🎙️</div>
+                <h2>准备好登上讲台了吗？</h2>
+                <p class="upload-hint">上传你的演讲视频，获得 AI 多维度分析与改进建议<br>支持 MP4 / MOV / AVI / WebM 格式，最大 500 MB</p>
+                <div class="upload-zone" id="upload-zone">
+                    <input type="file" id="file-input" accept=".mp4,.mov,.avi,.webm" hidden>
+                    <button class="btn-upload" onclick="document.getElementById('file-input').click()">
+                        📁 选择视频文件
+                    </button>
+                    <p class="drag-hint">或将文件拖放到此处</p>
+                </div>
+                <div class="file-info" id="file-info" style="display:none;">
+                    <span id="file-name"></span>
+                    <span id="file-size"></span>
+                </div>
+                <button class="btn-analyze" id="btn-analyze" disabled onclick="startAnalysis()">
+                    开始分析
+                </button>
+                <div class="progress-bar" id="progress-bar" style="display:none;">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="status-text" id="status-text"></p>
+            </div>
+        </section>
+
+        <!-- 近期任务 -->
+        <section class="recent-section">
+            <h2>近期分析</h2>
+            <div class="task-table-wrap">
+                <table class="task-table" id="task-table">
+                    <thead>
+                        <tr>
+                            <th>文件名</th>
+                            <th>状态</th>
+                            <th>综合得分</th>
+                            <th>等级</th>
+                            <th>时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-tbody">
+                        <tr><td colspan="6" class="empty-row">还没有分析记录，上传第一个视频开始吧</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="page-footer">
+        <p>AI Speech Coach v10 | 基于多模态人工智能的演讲分析系统</p>
+    </footer>
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script src="/static/js/app.js?v=999999"></script>
+</body>
+</html>

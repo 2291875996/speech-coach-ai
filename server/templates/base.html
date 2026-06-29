@@ -1,0 +1,42 @@
+{# ═══════════════════════════════════════════════════════════════════════════
+   备用模板 — 当前未参与渲染
+   ═══════════════════════════════════════════════════════════════════════════
+
+   本文件为 Jinja2 块继承模板的参考设计。当前服务器使用字符串替换
+   (_render 函数) 渲染页面，index.html / history.html / task.html 均为
+   独立完整 HTML，不使用本模板。
+
+   如需迁移到 Jinja2 模板继承：
+   1. 各页面改为 {% extends "base.html" %} + {% block content %}
+   2. 将 _render() 改为 Jinja2 Environment.get_template()
+   3. Plotly CDN 仅在 task.html 需要，可从 base 移到 task block 中
+#}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI 演讲反馈教练{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <a href="/">🎤 AI 演讲反馈教练</a>
+        </div>
+        <div class="nav-links">
+            <a href="/">📤 上传分析</a>
+            <a href="/history">📚 历史记录</a>
+        </div>
+    </nav>
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="page-footer">
+        <p>AI Speech Coach v10 | 基于多模态人工智能的演讲分析系统</p>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

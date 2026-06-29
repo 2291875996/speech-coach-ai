@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Visual Features Schema",
+  "description": "视觉分析器输出的视觉特征数据结构",
+  "type": "object",
+  "required": [
+    "source",
+    "frame_count_total",
+    "frame_count_processed",
+    "eye_contact_features",
+    "posture_features",
+    "dimension_scores",
+    "timestamp"
+  ],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "输入视频路径"
+    },
+    "frame_count_total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "视频总帧数"
+    },
+    "frame_count_processed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "检测到人脸的帧数（送入 FaceLandmarker 后成功检测到人脸的帧）"
+    },
+    "fps": {
+      "type": "number",
+      "minimum": 0,
+      "description": "视频帧率"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "视频时长（秒）"
+    },
+    "eye_contact_features": {
+      "type": "object",
+      "required": ["ear_left_mean", "ear_right_mean", "contact_ratio", "blink_count"],
+      "properties": {
+        "ear_left_mean": {
+          "type": "number",
+          "description": "左眼平均EAR值"
+        },
+        "ear_right_mean": {
+          "type": "number",
+          "description": "右眼平均EAR值"
+        },
+        "ear_left_std": {
+          "type": "number",
+          "description": "左眼EAR标准差"
+        },
+        "ear_right_std": {
+          "type": "number",
+          "description": "右眼EAR标准差"
+        },
+        "contact_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "眼神接触时间占比"
+        },
+        "blink_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "眨眼次数"
+        },
+        "blink_rate_per_minute": {
+          "type": "number",
+          "minimum": 0,
+          "description": "每分钟眨眼率"
+        }
+      }
+    },
+    "posture_features": {
+      "type": "object",
+      "required": ["head_pose_angles"],
+      "properties": {
+        "head_pose_angles": {
+          "type": "object",
+          "properties": {
+            "pitch_mean": { "type": "number" },
+            "pitch_std": { "type": "number" },
+            "yaw_mean": { "type": "number" },
+            "yaw_std": { "type": "number" },
+            "roll_mean": { "type": "number" },
+            "roll_std": { "type": "number" }
+          }
+        },
+        "posture_stability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "姿态稳定性评分"
+        },
+        "posture_uprightness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "姿态直立度评分"
+        }
+      }
+    },
+    "dimension_scores": {
+      "type": "object",
+      "required": ["eye_contact_score", "posture_score"],
+      "properties": {
+        "eye_contact_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "眼神交流得分"
+        },
+        "posture_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "姿态得分"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "分析时间戳 (ISO 8601)"
+    }
+  }
+}
